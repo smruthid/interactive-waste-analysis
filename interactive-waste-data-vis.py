@@ -31,7 +31,7 @@ if df['Weight (lbs)'].dtype == 'object':
     df['Weight (lbs)'] = df['Weight (lbs)'].str.replace(',','')
 
 df['Weight (lbs)'] = pd.to_numeric(df['Weight (lbs)'], errors='coerce')
-df['Weight (lbs)'] = df['Weight (lbs)'].fillna(0)
+df['Weight (lbs)'] = df['Weight (lbs)'].fillna(0).astype('float64')
 
 month_map = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
@@ -47,7 +47,6 @@ df = df.dropna(subset=['date'])
 min_date = df['date'].min().date()
 max_date = df['date'].max().date()
 
-#Options for multiselect
 options = df['Category'].unique().tolist()
 selected_values = st.multiselect(
     "Select categories:",
@@ -68,8 +67,8 @@ pivot_table_df = filtered_by_date_and_option.pivot_table(
     columns='Category',
     values='Weight (lbs)',
     aggfunc='sum'
-)
+).fillna(0)
 
-print(pivot_table_df.head())
-st.write(pivot_table_df.dtypes)
+pivot_table_df = pivot_table_df.resample('MS').sum()
+
 st.line_chart(pivot_table_df)
