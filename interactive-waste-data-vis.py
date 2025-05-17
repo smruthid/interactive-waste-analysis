@@ -2,6 +2,8 @@ import pandas as pd
 import streamlit as st
 from datetime import datetime
 import pytz
+import re
+import numpy as np
 
 
 def create_date(row):
@@ -21,9 +23,16 @@ def create_date(row):
     except Exception as e:
         return pd.NaT
 
-      
 
 df = pd.read_csv('assign2_25S_wastedata.csv')
+
+#df['Weight (lbs)'] = df['Weight (lbs)'].replace('', np.nan)
+if df['Weight (lbs)'].dtype == 'object':
+    df['Weight (lbs)'] = df['Weight (lbs)'].str.replace(',','')
+
+df['Weight (lbs)'] = pd.to_numeric(df['Weight (lbs)'], errors='coerce')
+df['Weight (lbs)'] = df['Weight (lbs)'].fillna(0)
+
 month_map = {
     'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
     'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
@@ -53,4 +62,14 @@ date_range = st.slider(
     value=(min_date,max_date)
 )
 
+filtered_by_date_and_option = df[(df['date'].dt.date >= date_range[0]) & (df['date'].dt.date <= date_range[1]) & df['Category'].isin(selected_values)]
+pivot_table_df = filtered_by_date_and_option.pivot_table(
+    index='date',
+    columns='Category',
+    values='Weight (lbs)',
+    aggfunc='sum'
+)
 
+print(pivot_table_df.head())
+st.write(pivot_table_df.dtypes)
+st.line_chart(pivot_table_df)
