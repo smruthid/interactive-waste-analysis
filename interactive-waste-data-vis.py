@@ -11,13 +11,8 @@ def create_date(row):
         year = int(row['Year'])
         
         month = int(row['MonthNum'])
-
-        day = 1
-        if pd.notna(row['Day']):
-            day = int(row['Day'])
-            
         
-        date_with_timezone = datetime(year, month, day, 8, 0, 0, tzinfo=pytz.UTC)
+        date_with_timezone = datetime(year, month, 1, 0, 0, 0, tzinfo=pytz.UTC)
         return date_with_timezone
     
     except Exception as e:
@@ -26,7 +21,6 @@ def create_date(row):
 
 df = pd.read_csv('assign2_25S_wastedata.csv')
 
-#df['Weight (lbs)'] = df['Weight (lbs)'].replace('', np.nan)
 if df['Weight (lbs)'].dtype == 'object':
     df['Weight (lbs)'] = df['Weight (lbs)'].str.replace(',','')
 
@@ -47,6 +41,13 @@ df = df.dropna(subset=['date'])
 min_date = df['date'].min().date()
 max_date = df['date'].max().date()
 
+# Create a list of month-year dates for the slider
+dates = pd.date_range(start=min_date, end=max_date, freq='MS').tolist()
+date_labels = [d.strftime('%m-%Y') for d in dates]
+
+# Map the formatted dates back to actual datetime objects
+date_dict = dict(zip(date_labels, dates))
+
 options = df['Category'].unique().tolist()
 selected_values = st.multiselect(
     "Select categories:",
@@ -54,14 +55,20 @@ selected_values = st.multiselect(
     default=options
 )
 
-date_range = st.slider(
+# Create slider with formatted date labels
+selected_date_labels = st.select_slider(
     'Date Range:',
-    min_value=min_date,
-    max_value=max_date,
-    value=(min_date,max_date)
+    options=date_labels,
+    value=(date_labels[0], date_labels[-1])
 )
 
-filtered_by_date_and_option = df[(df['date'].dt.date >= date_range[0]) & (df['date'].dt.date <= date_range[1]) & df['Category'].isin(selected_values)]
+# Convert selected labels back to datetime for filtering
+start_date = date_dict[selected_date_labels[0]].date()
+end_date = date_dict[selected_date_labels[1]].date()
+
+# Use these dates for filtering
+filtered_by_date_and_option = df[(df['date'].dt.date >= start_date) & (df['date'].dt.date <= end_date) & df['Category'].isin(selected_values)]
+filtered_by_date_and_option['date'] = filtered_by_date_and_option['date'].dt.strftime('%Y-%m')
 pivot_table_df = filtered_by_date_and_option.pivot_table(
     index='date',
     columns='Category',
@@ -69,6 +76,7 @@ pivot_table_df = filtered_by_date_and_option.pivot_table(
     aggfunc='sum'
 ).fillna(0)
 
-pivot_table_df = pivot_table_df.resample('MS').sum()
+#pivot_table_df = pivot_table_df.resample('M').sum()
 
 st.line_chart(pivot_table_df)
+st.write(pivot_table_df)
