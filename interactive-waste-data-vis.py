@@ -49,15 +49,17 @@ date_labels = [d.strftime('%m-%Y') for d in dates]
 date_dict = dict(zip(date_labels, dates))
 
 options = df['Category'].unique().tolist()
+st.header("Waste Tracking Dashboard")
+
 selected_values = st.multiselect(
-    "Select categories:",
+    "Select Waste Categories:",
     options=options,
     default=options
 )
 
 # Create slider with formatted date labels
 selected_date_labels = st.select_slider(
-    'Date Range:',
+    'Select Date Range:',
     options=date_labels,
     value=(date_labels[0], date_labels[-1])
 )
@@ -76,7 +78,6 @@ pivot_table_df = filtered_by_date_and_option.pivot_table(
     aggfunc='sum'
 ).fillna(0)
 
-#pivot_table_df = pivot_table_df.resample('M').sum()
-
 st.line_chart(pivot_table_df)
+st.write("View the weight (lbs) of each waste category according to year and month:")
 st.write(pivot_table_df)
